@@ -1,0 +1,650 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Caesar Imperium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400;500&display=swap">
+<style>
+/* Layout: vertikale Scroll-Snap-Panels, eine Sektion pro Bildschirm; feste
+   Kopfzeile + Seitenindex; riesige Geister-Ziffer je Sektion; 2-spaltiges
+   Verzeichnis mit Haarlinien. Edel-editorial (Didone), ein zurückhaltendes
+   Gold als einziger Akzent. */
+:root{
+  --bg:#FBFAF7;          /* Alabaster, kaum warm */
+  --bg-2:#F3F0E9;        /* leicht abgesetzte Fläche */
+  --fg:#17140F;          /* warmes Tiefschwarz */
+  --muted:#6C6456;       /* Taupe-Grau, Beschreibungen */
+  --faint:#B9B1A2;       /* Geister-Ziffer, sehr zurückgenommen */
+  --line:#DCD6C9;        /* Haarlinie */
+  --accent:#9C7C3C;      /* antikes Gold, nur sparsam */
+  --accent-soft:#C8AE78;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E0D0B; --bg-2:#15130F; --fg:#ECE7DC; --muted:#9A9182;
+  --faint:#2C2820; --line:#2A261F; --accent:#C9A24B; --accent-soft:#8A7232;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E0D0B; --bg-2:#15130F; --fg:#ECE7DC; --muted:#9A9182;
+  --faint:#2C2820; --line:#2A261F; --accent:#C9A24B; --accent-soft:#8A7232;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:"Jost","Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);
+  background:var(--bg);z-index:60}
+
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:1px solid var(--accent);outline-offset:3px}
+
+/* ---- Kopfzeile ---- */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:50;gap:1rem;
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  padding-top:calc(.95rem + env(safe-area-inset-top,0px));padding-bottom:.95rem;
+  padding-left:max(1.4rem,env(safe-area-inset-left,0px));
+  padding-right:max(1.4rem,env(safe-area-inset-right,0px));
+  background:var(--bg);border-bottom:1px solid var(--line);
+  transform:translateY(0);transition:transform .42s cubic-bezier(.2,.7,.2,1)}
+.topbar.hide{transform:translateY(-115%)}
+.brand{justify-self:center;white-space:nowrap;min-width:0}
+.wordmark{font-family:"Bodoni Moda",Georgia,serif;font-weight:400;
+  letter-spacing:.44em;font-size:1.04rem;text-transform:uppercase;padding-left:.44em}
+.counter{font-weight:400;letter-spacing:.26em;font-size:.64rem;text-transform:uppercase;
+  color:var(--muted);font-variant-numeric:tabular-nums;justify-self:end;text-align:right}
+.counter b{color:var(--accent);font-weight:500}
+
+/* ---- Suchleiste ---- */
+.search{display:flex;align-items:center;gap:.5rem;flex:0 1 220px;justify-self:start;width:100%;max-width:230px;
+  border-bottom:1px solid var(--line);padding:.2rem 0;transition:border-color .4s ease}
+.search:focus-within{border-color:var(--accent)}
+.search svg{width:13px;height:13px;flex:none;color:var(--muted);transition:color .4s ease}
+.search:focus-within svg{color:var(--accent)}
+.search input{flex:1;min-width:0;background:none;border:0;outline:none;color:var(--fg);
+  font-family:"Jost",sans-serif;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase}
+.search input::placeholder{color:var(--muted);letter-spacing:.24em}
+.search input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+
+/* ---- Suchergebnisse ---- */
+#results{position:fixed;inset:0;z-index:45;background:var(--bg);overflow-y:auto;
+  padding-top:calc(5rem + env(safe-area-inset-top,0px));padding-bottom:2.5rem;
+  padding-left:max(1.4rem,env(safe-area-inset-left,0px));
+  padding-right:max(1.4rem,env(safe-area-inset-right,0px));
+  opacity:0;visibility:hidden;transition:opacity .32s ease}
+#results.on{opacity:1;visibility:visible}
+.rwrap{max-width:1120px;margin:0 auto}
+.rmeta{display:flex;justify-content:space-between;gap:1rem;font-size:.6rem;letter-spacing:.3em;
+  text-transform:uppercase;color:var(--muted);padding-bottom:.9rem;border-bottom:1px solid var(--line)}
+.rmeta b{color:var(--accent);font-weight:500;font-variant-numeric:tabular-nums}
+.rgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  column-gap:clamp(2rem,5vw,4.5rem)}
+.rtag{display:block;font-size:.52rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:.12rem}
+.rempty{font-family:"Cormorant Garamond",Georgia,serif;font-size:1.4rem;color:var(--muted);
+  text-align:center;padding:3.4rem 0}
+@media (max-width:640px){.rgrid{grid-template-columns:1fr}}
+
+/* ---- Seitenindex ---- */
+.rail{position:fixed;top:50%;right:1.5rem;transform:translateY(-50%);z-index:40;
+  display:flex;flex-direction:column;gap:.95rem;align-items:flex-end}
+.rail a{display:flex;align-items:center;gap:.6rem;font-size:.6rem;letter-spacing:.2em;
+  color:var(--muted);font-variant-numeric:tabular-nums;transition:color .4s ease}
+.rail a .tick{width:14px;height:1px;background:var(--line);transition:all .45s cubic-bezier(.2,.7,.2,1)}
+.rail a .lab{opacity:0;transform:translateX(6px);transition:all .45s ease;
+  text-transform:uppercase;font-size:.56rem}
+.rail a:hover{color:var(--fg)}
+.rail a:hover .lab{opacity:.75;transform:none}
+.rail a.active{color:var(--accent)}
+.rail a.active .tick{width:34px;background:var(--accent)}
+.rail a.active .lab{opacity:0}
+
+/* ---- Scroll-Container & Sektionen ---- */
+.scroll{height:100%;overflow-y:auto;scroll-snap-type:y proximity;scroll-behavior:smooth}
+section{min-height:100%;scroll-snap-align:start;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:center;
+  padding-top:calc(5.2rem + env(safe-area-inset-top,0px));padding-bottom:3.2rem;
+  padding-left:max(1.4rem,env(safe-area-inset-left,0px));
+  padding-right:max(1.4rem,env(safe-area-inset-right,0px))}
+.inner{width:100%;max-width:1120px;margin:0 auto;position:relative;z-index:2}
+
+/* Geister-Ziffer */
+.ghost{position:absolute;z-index:0;pointer-events:none;
+  font-family:"Bodoni Moda",Georgia,serif;font-weight:500;
+  color:var(--faint);line-height:.8;
+  font-size:clamp(11rem,40vw,30rem);
+  right:-.06em;bottom:-.14em;opacity:.5}
+
+/* ---- Cover ---- */
+.cover{align-items:center;text-align:center}
+.cover .frame{border:1px solid var(--line);padding:clamp(2.4rem,7vw,5rem) clamp(1.6rem,6vw,4.5rem);
+  display:flex;flex-direction:column;align-items:center;gap:1.5rem;max-width:760px;width:100%;
+  position:relative}
+.cover .frame::before,.cover .frame::after{content:"";position:absolute;width:10px;height:10px;
+  border:1px solid var(--accent);opacity:.7}
+.cover .frame::before{top:9px;left:9px;border-right:0;border-bottom:0}
+.cover .frame::after{bottom:9px;right:9px;border-left:0;border-top:0}
+.cover .eyebrow{font-size:.62rem;letter-spacing:.5em;text-transform:uppercase;color:var(--accent)}
+.cover h1{font-family:"Bodoni Moda",Georgia,serif;font-weight:400;margin:0;
+  font-size:clamp(2.7rem,9vw,5.6rem);line-height:.98;letter-spacing:.02em;text-wrap:balance}
+.cover h1 em{font-style:italic}
+.cover .sub{font-size:clamp(.62rem,2.3vw,.76rem);letter-spacing:.32em;text-transform:uppercase;
+  color:var(--muted);max-width:30ch;line-height:1.9}
+.rule{height:1px;width:64px;background:var(--accent);opacity:.8}
+.cover .meta{font-size:.56rem;letter-spacing:.34em;text-transform:uppercase;color:var(--muted)}
+.cover .stack{display:flex;flex-direction:column;align-items:center;gap:1.3rem;width:100%;transform:translateY(1.2rem)}
+.cover .logo{width:min(250px,60vw);height:auto;max-width:100%;display:block;margin:0}
+.emblem{position:relative;width:84px;height:84px;display:grid;place-items:center;margin-bottom:.1rem}
+.emblem svg{position:absolute;inset:0;width:100%;height:100%}
+.emblem .r1{stroke:var(--line);stroke-width:.8;fill:none}
+.emblem .r2{stroke:var(--accent);stroke-width:.6;fill:none;opacity:.55}
+.emblem .dot{fill:var(--accent)}
+.emblem .mono{font-family:"Bodoni Moda",Georgia,serif;font-style:italic;font-weight:400;
+  font-size:1.5rem;color:var(--accent);letter-spacing:.02em;line-height:1}
+.contents-lab{font-size:.56rem;letter-spacing:.42em;text-transform:uppercase;color:var(--muted);
+  margin-top:.5rem}
+.cover .contents{width:100%;max-width:640px;display:grid;grid-template-columns:1fr 1fr;
+  gap:0 2.4rem;text-align:left}
+.cx{display:flex;align-items:baseline;gap:.75rem;padding:.52rem .1rem;
+  border-top:1px solid var(--line);transition:color .35s ease}
+.cx .cn{font-size:.58rem;letter-spacing:.2em;color:var(--accent);flex:none;
+  font-variant-numeric:tabular-nums}
+.cx .ct{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;font-size:1.02rem;
+  line-height:1.1;color:var(--fg);transition:color .35s ease}
+.cx:hover .ct{color:var(--accent)}
+
+/* ---- Sektionskopf ---- */
+.shead{display:flex;flex-direction:column;gap:.8rem;margin-bottom:1.8rem}
+.eyebrow{font-size:.6rem;letter-spacing:.42em;text-transform:uppercase;color:var(--accent);
+  font-variant-numeric:tabular-nums}
+.stitle{font-family:"Bodoni Moda",Georgia,serif;font-weight:400;margin:0;
+  font-size:clamp(1.7rem,4.4vw,3.1rem);line-height:1.04;letter-spacing:.01em;text-wrap:balance}
+.srule{height:1px;background:var(--line);position:relative;margin-top:.3rem}
+.srule::after{content:"";position:absolute;left:0;top:0;height:1px;width:58px;background:var(--accent)}
+.scount{font-size:.58rem;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);
+  font-variant-numeric:tabular-nums;align-self:flex-start;margin-top:-.2rem}
+
+/* ---- Verzeichnis ---- */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  column-gap:clamp(2rem,5vw,4.5rem);row-gap:0}
+.row{display:flex;align-items:baseline;gap:1rem;justify-content:space-between;
+  padding:.72rem 0;border-bottom:1px solid var(--line);min-width:0}
+.row .info{min-width:0}
+.row .nm{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;
+  font-size:1.22rem;line-height:1.15;letter-spacing:.005em}
+.row .ds{font-size:.68rem;color:var(--muted);line-height:1.35;margin-left:.75em;
+  letter-spacing:.01em}
+.row .go{flex:none;font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap;transition:color .35s ease}
+.row .go .ar{display:inline-block;margin-left:.45em;transition:transform .35s cubic-bezier(.2,.7,.2,1);color:var(--accent)}
+.row:hover .nm{color:var(--accent)}
+.row:hover .go{color:var(--fg)}
+.row:hover .go .ar{transform:translateX(5px)}
+
+/* ---- Fuß ---- */
+.foot{margin-top:2.4rem;display:flex;align-items:center;justify-content:space-between;
+  gap:1rem;flex-wrap:wrap;font-size:.56rem;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--muted)}
+.foot .pg{color:var(--accent);font-variant-numeric:tabular-nums}
+
+/* ---- Reveal (nur mit JS; ohne JS alles sichtbar = vollständig in Ruhe) ---- */
+html.anim .reveal{opacity:0;transform:translateY(16px);
+  transition:opacity .8s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
+html.anim .reveal.in{opacity:1;transform:none}
+html.anim .reveal.d1{transition-delay:.08s}
+html.anim .reveal.d2{transition-delay:.16s}
+@media (prefers-reduced-motion:reduce){
+  html.anim .reveal{opacity:1;transform:none;transition:none}
+  .scroll{scroll-behavior:auto}
+  .topbar{transition:none}
+}
+
+@media (max-width:860px){
+  .rail{display:none}
+  .grid{grid-template-columns:1fr}
+  section{padding-top:calc(4.8rem + env(safe-area-inset-top,0px))}
+  .ghost{opacity:.4;font-size:clamp(9rem,52vw,20rem)}
+}
+@media (max-width:580px){
+  .cover .contents{grid-template-columns:1fr;max-width:330px;gap:0}
+}
+@media (max-width:620px){
+  .counter{visibility:hidden}
+  .search{max-width:none}
+  .mark{height:42px}
+  .wordmark{font-size:.84rem;letter-spacing:.26em}
+}
+@media (max-width:460px){
+  .mark{height:38px}
+  .brand{gap:.5rem}
+  .wordmark{font-size:.66rem;letter-spacing:.18em;padding-left:.18em}
+  .row{flex-wrap:wrap;gap:.3rem}
+  .row .go{margin-top:.1rem}
+}
+</style>
+<header class="topbar">
+  <form class="search" id="sf" role="search" autocomplete="off">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.2-4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="q" type="search" placeholder="Suchen" aria-label="Marken durchsuchen" autocomplete="off">
+  </form>
+  <span class="brand"><span class="wordmark">Caesar Imperium</span></span>
+  <span class="spacer" aria-hidden="true"></span>
+</header>
+<nav class="rail" aria-label="Sektionen">
+<a href="#cover" data-go="cover"><span class="lab">Titel</span><span class="tick"></span></a>
+<a href="#sec01" data-go="sec01"><span class="lab">01</span><span class="tick"></span></a>
+<a href="#sec02" data-go="sec02"><span class="lab">02</span><span class="tick"></span></a>
+<a href="#sec03" data-go="sec03"><span class="lab">03</span><span class="tick"></span></a>
+<a href="#sec04" data-go="sec04"><span class="lab">04</span><span class="tick"></span></a>
+<a href="#sec05" data-go="sec05"><span class="lab">05</span><span class="tick"></span></a>
+<a href="#sec06" data-go="sec06"><span class="lab">06</span><span class="tick"></span></a>
+<a href="#sec07" data-go="sec07"><span class="lab">07</span><span class="tick"></span></a>
+<a href="#sec08" data-go="sec08"><span class="lab">08</span><span class="tick"></span></a>
+<a href="#sec09" data-go="sec09"><span class="lab">09</span><span class="tick"></span></a>
+</nav>
+<main class="scroll">
+<section id="cover" class="cover" data-idx="0" data-label="Titel">
+  <div class="inner">
+    <div class="stack reveal">
+      <img class="logo" src="logo.png" alt="Caesar Imperium" width="720" height="720">
+      <nav class="contents" aria-label="Inhalt">
+<a class="cx" href="#sec01" data-go="sec01"><span class="cn">01</span><span class="ct">Haute Couture</span></a>
+<a class="cx" href="#sec02" data-go="sec02"><span class="cn">02</span><span class="ct">Streetwear</span></a>
+<a class="cx" href="#sec03" data-go="sec03"><span class="cn">03</span><span class="ct">Horology</span></a>
+<a class="cx" href="#sec04" data-go="sec04"><span class="cn">04</span><span class="ct">Supercars</span></a>
+<a class="cx" href="#sec05" data-go="sec05"><span class="cn">05</span><span class="ct">Bohemian Crystal</span></a>
+<a class="cx" href="#sec06" data-go="sec06"><span class="cn">06</span><span class="ct">Fine Jewelry</span></a>
+<a class="cx" href="#sec07" data-go="sec07"><span class="cn">07</span><span class="ct">Eyewear</span></a>
+<a class="cx" href="#sec08" data-go="sec08"><span class="cn">08</span><span class="ct">Fragrance</span></a>
+<a class="cx" href="#sec09" data-go="sec09"><span class="cn">09</span><span class="ct">Fine Spirits</span></a>
+      </nav>
+      <div class="meta">Ultimate Comprehensive Directory · Est. MMXXVI</div>
+    </div>
+  </div>
+</section>
+<section id="sec01" data-idx="1" data-label="01" data-short="Haute Couture">
+  <div class="ghost" aria-hidden="true">01</div>
+  <div class="inner">
+    <div class="shead reveal">
+      <div class="eyebrow">Sektion 01 &middot; 28 Häuser</div>
+      <h2 class="stitle">HAUTE COUTURE &amp; LUXURY HOUSES</h2>
+      <div class="srule"></div>
+    </div>
+    <div class="grid reveal d1">
+<a class="row" href="https://www.prada.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Prada</span><span class="ds">Italienische Avantgarde, Minimalismus, Nylon-Tech</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.louisvuitton.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Louis Vuitton</span><span class="ds">Französisches Reisegepäck und Monogram-Leder</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.chanel.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Chanel</span><span class="ds">Pariser Haute Couture, Tweed, zeitlose Eleganz</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.dior.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Dior</span><span class="ds">Pariser Couture und Tailoring seit 1946</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.hermes.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Hermès</span><span class="ds">Handwerk, Birkin, Kelly, Seidentücher</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.gucci.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Gucci</span><span class="ds">Italienischer Maximalismus mit kühnen Mustern</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.ysl.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Saint Laurent</span><span class="ds">Rockige Pariser Silhouette</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.balenciaga.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Balenciaga</span><span class="ds">Dekonstruierte, futuristische Avantgarde</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.bottegaveneta.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Bottega Veneta</span><span class="ds">Intrecciato-Leder aus Italien</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.burberry.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Burberry</span><span class="ds">Britisches Erbe, Trench, Check-Muster</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.valentino.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Valentino</span><span class="ds">Römische Haute Couture</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.versace.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Versace</span><span class="ds">Italienischer Glamour, Medusa, Prints</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.fendi.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Fendi</span><span class="ds">Römisches Pelz- und Lederhaus, Zucca</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.celine.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Celine</span><span class="ds">Minimalistische französische Eleganz</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.loewe.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Loewe</span><span class="ds">Spanisches Lederhaus, Avantgarde</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.givenchy.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Givenchy</span><span class="ds">Pariser Couture, dunkle Romantik</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.tomfordfashion.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Tom Ford</span><span class="ds">Amerikanische Sinnlichkeit, Tailoring</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.jacquemus.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Jacquemus</span><span class="ds">Südfranzösischer Luxus, Mini-Bags</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.miumiu.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Miu Miu</span><span class="ds">Pradas verspielte Schwester</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.alexandermcqueen.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Alexander McQueen</span><span class="ds">Britische Dramatik und Schnitt</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.brunellocucinelli.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Brunello Cucinelli</span><span class="ds">Quiet Luxury, Kaschmir aus Solomeo</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.maisonmargiela.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Maison Margiela</span><span class="ds">Konzeptuelle Dekonstruktion</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.balmain.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Balmain</span><span class="ds">Pariser Glamour mit Struktur</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.moncler.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Moncler</span><span class="ds">Alpiner Luxus, Daunen-Couture</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.dolcegabbana.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Dolce &amp; Gabbana</span><span class="ds">Sizilianische Opulenz</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.zegna.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Zegna</span><span class="ds">Mailänder Tailoring und Stoffe</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.rickowens.eu" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Rick Owens</span><span class="ds">Düstere Avantgarde-Silhouetten</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.thombrowne.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Thom Browne</span><span class="ds">Amerikanisches Grey-Tailoring</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+    </div>
+    <div class="foot reveal d2">
+      <span>Caesar Imperium &middot; Ultimate Edition</span>
+      <span class="pg">Seite 01 / 09</span>
+    </div>
+  </div>
+</section>
+<section id="sec02" data-idx="2" data-label="02" data-short="Streetwear">
+  <div class="ghost" aria-hidden="true">02</div>
+  <div class="inner">
+    <div class="shead reveal">
+      <div class="eyebrow">Sektion 02 &middot; 20 Häuser</div>
+      <h2 class="stitle">STREETWEAR, HYPE &amp; CULTURE</h2>
+      <div class="srule"></div>
+    </div>
+    <div class="grid reveal d1">
+<a class="row" href="https://www.supremenewyork.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Supreme</span><span class="ds">New Yorker Skate- und Drop-Kultur</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.off---white.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Off-White</span><span class="ds">Virgil Ablohs Luxus-Streetwear</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.bape.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">BAPE</span><span class="ds">Japanische Hype-Kultur, Camo, Shark</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.stussy.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Stüssy</span><span class="ds">Kaliforniens Surf-Streetwear</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.palaceskateboards.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Palace</span><span class="ds">Londoner Skate, britischer Humor</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.fearofgod.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Fear of God</span><span class="ds">Jerry Lorenzos Oversized-Luxus</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.corteiz.xyz" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Corteiz</span><span class="ds">Britischer Underground, Guerrilla-Drops</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.kith.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Kith</span><span class="ds">New Yorker Sneaker-Kultur, Ronnie Fieg</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.aimeleondore.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Aimé Leon Dore</span><span class="ds">New Yorker Retro-Eleganz</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.rhude.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Rhude</span><span class="ds">Luxus-Streetwear aus Los Angeles</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.representclo.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Represent</span><span class="ds">Britische Premium-Basics</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.gallerydept.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Gallery Dept.</span><span class="ds">LA-Upcycling und Kunst</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.chromehearts.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Chrome Hearts</span><span class="ds">Gotisches Silber und Leder</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.denimtears.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Denim Tears</span><span class="ds">Kulturelle Denim-Statements</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.trapstarlondon.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Trapstar</span><span class="ds">Londoner Underground-Label</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.carhartt-wip.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Carhartt WIP</span><span class="ds">Europäischer Workwear-Arm</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.arcteryx.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Arc&#x27;teryx</span><span class="ds">Technische Urban-Ästhetik</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.noahny.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Noah</span><span class="ds">Bewusste New Yorker Mode</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.awakeny.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Awake NY</span><span class="ds">New Yorker Street-Heritage</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.sp5der.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Sp5der</span><span class="ds">Hype-Label mit Web-Motiv</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+    </div>
+    <div class="foot reveal d2">
+      <span>Caesar Imperium &middot; Ultimate Edition</span>
+      <span class="pg">Seite 02 / 09</span>
+    </div>
+  </div>
+</section>
+<section id="sec03" data-idx="3" data-label="03" data-short="Horology">
+  <div class="ghost" aria-hidden="true">03</div>
+  <div class="inner">
+    <div class="shead reveal">
+      <div class="eyebrow">Sektion 03 &middot; 18 Häuser</div>
+      <h2 class="stitle">HOROLOGY &amp; FINE WATCHES</h2>
+      <div class="srule"></div>
+    </div>
+    <div class="grid reveal d1">
+<a class="row" href="https://www.rolex.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Rolex</span><span class="ds">Schweizer Präzision und Prestige</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.patek.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Patek Philippe</span><span class="ds">Sammler-Manufaktur aus Genf</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.audemarspiguet.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Audemars Piguet</span><span class="ds">Royal Oak aus der Vallée de Joux</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.vacheron-constantin.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Vacheron Constantin</span><span class="ds">Älteste durchgehende Manufaktur</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.richardmille.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Richard Mille</span><span class="ds">High-Tech-Haute-Horlogerie</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.alange-soehne.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">A. Lange &amp; Söhne</span><span class="ds">Sächsische Feinuhrmacherei</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.jaeger-lecoultre.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Jaeger-LeCoultre</span><span class="ds">Manufaktur der Komplikationen</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.breguet.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Breguet</span><span class="ds">Erfinder des Tourbillon</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.omegawatches.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Omega</span><span class="ds">Schweizer Uhren, Mond und Bond</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.cartier.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Cartier</span><span class="ds">Formuhren-Ikone: Tank, Santos</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.iwc.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">IWC Schaffhausen</span><span class="ds">Ingenieurskunst aus der Schweiz</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.blancpain.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Blancpain</span><span class="ds">Älteste Uhrenmarke der Welt</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.panerai.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Panerai</span><span class="ds">Italienisches Marine-Erbe</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.hublot.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Hublot</span><span class="ds">Art of Fusion, Materialien</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.fpjourne.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">F.P. Journe</span><span class="ds">Unabhängige Haute Horlogerie</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.grand-seiko.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Grand Seiko</span><span class="ds">Japanische Präzision, Zaratsu</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.tudorwatch.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Tudor</span><span class="ds">Rolex&#x27; werkzeugorientierte Schwester</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.zenith-watches.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Zenith</span><span class="ds">El Primero Hochfrequenz</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+    </div>
+    <div class="foot reveal d2">
+      <span>Caesar Imperium &middot; Ultimate Edition</span>
+      <span class="pg">Seite 03 / 09</span>
+    </div>
+  </div>
+</section>
+<section id="sec04" data-idx="4" data-label="04" data-short="Supercars">
+  <div class="ghost" aria-hidden="true">04</div>
+  <div class="inner">
+    <div class="shead reveal">
+      <div class="eyebrow">Sektion 04 &middot; 12 Häuser</div>
+      <h2 class="stitle">SUPERCARS &amp; AUTOMOTIVE LIFESTYLE</h2>
+      <div class="srule"></div>
+    </div>
+    <div class="grid reveal d1">
+<a class="row" href="https://www.bugatti.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Bugatti</span><span class="ds">Spitze des Automobilbaus, Topspeed</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.ferrari.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Ferrari</span><span class="ds">Italienische Motorsport-Leidenschaft</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.lamborghini.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Lamborghini</span><span class="ds">Italienische V12-Supersportler</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.porsche.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Porsche</span><span class="ds">Sportwagen-Ikone aus Zuffenhausen</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.rolls-roycemotorcars.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Rolls-Royce</span><span class="ds">Britischer Automobil-Luxus</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.mclaren.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">McLaren</span><span class="ds">Britische Carbon-Ingenieurskunst</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.astonmartin.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Aston Martin</span><span class="ds">Britische Gran-Turismo-Eleganz</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.bentleymotors.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Bentley</span><span class="ds">Handgefertigte britische Grand Tourer</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.pagani.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Pagani</span><span class="ds">Kunstvolle Hypercars aus Modena</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.koenigsegg.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Koenigsegg</span><span class="ds">Schwedische Megacar-Innovation</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.maserati.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Maserati</span><span class="ds">Italienische Grand-Turismo-Tradition</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.mercedes-amg.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Mercedes-AMG</span><span class="ds">Deutsche Performance-Veredelung</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+    </div>
+    <div class="foot reveal d2">
+      <span>Caesar Imperium &middot; Ultimate Edition</span>
+      <span class="pg">Seite 04 / 09</span>
+    </div>
+  </div>
+</section>
+<section id="sec05" data-idx="5" data-label="05" data-short="Bohemian Crystal">
+  <div class="ghost" aria-hidden="true">05</div>
+  <div class="inner">
+    <div class="shead reveal">
+      <div class="eyebrow">Sektion 05 &middot; 8 Häuser</div>
+      <h2 class="stitle">BOHEMIAN CRYSTAL &amp; GLASSWARE</h2>
+      <div class="srule"></div>
+    </div>
+    <div class="grid reveal d1">
+<a class="row" href="https://www.moser-glass.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Moser</span><span class="ds">Königliche Glashütte aus Karlsbad</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.ruckl.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Rückl</span><span class="ds">Böhmische Glaskunst, modern interpretiert</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.baccarat.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Baccarat</span><span class="ds">Französisches Kristall seit 1764</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.lalique.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Lalique</span><span class="ds">Art-déco-Kristall aus Frankreich</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.saint-louis.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Saint-Louis</span><span class="ds">Älteste französische Kristallerie</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.riedel.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Riedel</span><span class="ds">Österreichische Glas-Oenologie</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.daum.fr" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Daum</span><span class="ds">Pâte-de-verre-Kunstglas aus Nancy</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.waterford.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Waterford</span><span class="ds">Irisches Kristall-Erbe</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+    </div>
+    <div class="foot reveal d2">
+      <span>Caesar Imperium &middot; Ultimate Edition</span>
+      <span class="pg">Seite 05 / 09</span>
+    </div>
+  </div>
+</section>
+<section id="sec06" data-idx="6" data-label="06" data-short="Fine Jewelry">
+  <div class="ghost" aria-hidden="true">06</div>
+  <div class="inner">
+    <div class="shead reveal">
+      <div class="eyebrow">Sektion 06 &middot; 14 Häuser</div>
+      <h2 class="stitle">FINE JEWELRY &amp; HIGH MAISONS</h2>
+      <div class="srule"></div>
+    </div>
+    <div class="grid reveal d1">
+<a class="row" href="https://www.vancleefarpels.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Van Cleef &amp; Arpels</span><span class="ds">Pariser Poesie des Schmucks</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.cartier.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Cartier</span><span class="ds">Der Juwelier der Könige</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.tiffany.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Tiffany &amp; Co.</span><span class="ds">Amerikanische Juwelier-Ikone</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.bulgari.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Bvlgari</span><span class="ds">Römische Farben und Volumen</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.boucheron.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Boucheron</span><span class="ds">Erstes Haus der Place Vendôme</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.chaumet.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Chaumet</span><span class="ds">Pariser Diademe seit 1780</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.harrywinston.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Harry Winston</span><span class="ds">König der Diamanten</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.graff.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Graff</span><span class="ds">Außergewöhnliche Diamanten aus London</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.chopard.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Chopard</span><span class="ds">Genfer Haute Joaillerie</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.piaget.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Piaget</span><span class="ds">Ultraflache Uhren und Schmuck</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.buccellati.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Buccellati</span><span class="ds">Mailänder Gravurkunst</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.pomellato.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Pomellato</span><span class="ds">Zeitgenössischer Mailänder Schmuck</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.messika.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Messika</span><span class="ds">Pariser Diamant-Moderne</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.davidyurman.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">David Yurman</span><span class="ds">Amerikanischer Designer-Schmuck</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+    </div>
+    <div class="foot reveal d2">
+      <span>Caesar Imperium &middot; Ultimate Edition</span>
+      <span class="pg">Seite 06 / 09</span>
+    </div>
+  </div>
+</section>
+<section id="sec07" data-idx="7" data-label="07" data-short="Eyewear">
+  <div class="ghost" aria-hidden="true">07</div>
+  <div class="inner">
+    <div class="shead reveal">
+      <div class="eyebrow">Sektion 07 &middot; 12 Häuser</div>
+      <h2 class="stitle">EYEWEAR &amp; OPTICAL</h2>
+      <div class="srule"></div>
+    </div>
+    <div class="grid reveal d1">
+<a class="row" href="https://www.oliverpeoples.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Oliver Peoples</span><span class="ds">Kalifornische Brillen-Raffinesse</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.persol.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Persol</span><span class="ds">Italienisches Brillen-Erbe, Meflecto</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.ray-ban.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Ray-Ban</span><span class="ds">Die ikonische Sonnenbrille</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.cartier.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Cartier Eyewear</span><span class="ds">Luxus-Fassungen mit Gold</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.gentlemonster.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Gentle Monster</span><span class="ds">Koreanische Avantgarde-Brillen</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.jacquesmariemage.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Jacques Marie Mage</span><span class="ds">Limitierte Designer-Fassungen</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.cutlerandgross.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Cutler and Gross</span><span class="ds">Handgefertigt in London seit 1969</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.dita.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Dita</span><span class="ds">Japanische Präzisions-Eyewear</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.lindafarrow.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Linda Farrow</span><span class="ds">Britischer Brillen-Luxus</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.garrettleight.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Garrett Leight</span><span class="ds">California Optical, entspannt</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.moscot.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Moscot</span><span class="ds">New Yorker Brillen seit 1915</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.thombrowne.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Thom Browne Eyewear</span><span class="ds">Architektonische Fassungen</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+    </div>
+    <div class="foot reveal d2">
+      <span>Caesar Imperium &middot; Ultimate Edition</span>
+      <span class="pg">Seite 07 / 09</span>
+    </div>
+  </div>
+</section>
+<section id="sec08" data-idx="8" data-label="08" data-short="Fragrance">
+  <div class="ghost" aria-hidden="true">08</div>
+  <div class="inner">
+    <div class="shead reveal">
+      <div class="eyebrow">Sektion 08 &middot; 12 Häuser</div>
+      <h2 class="stitle">FRAGRANCE &amp; PERFUMERY</h2>
+      <div class="srule"></div>
+    </div>
+    <div class="grid reveal d1">
+<a class="row" href="https://www.creedfragrances.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Creed</span><span class="ds">Britisch-französisches Parfum-Haus</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.franciskurkdjian.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Maison Francis Kurkdjian</span><span class="ds">Pariser Parfum-Kunst</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.amouage.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Amouage</span><span class="ds">Omanische Duft-Opulenz</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.byredo.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Byredo</span><span class="ds">Skandinavische Duft-Moderne</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.lelabofragrances.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Le Labo</span><span class="ds">Handgemischte New Yorker Düfte</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.parfums-de-marly.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Parfums de Marly</span><span class="ds">Königliche Pariser Düfte</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.rojaparfums.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Roja Parfums</span><span class="ds">Luxuriöse Londoner Parfümerie</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.xerjoff.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Xerjoff</span><span class="ds">Italienische Nischen-Parfumerie</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.diptyqueparis.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Diptyque</span><span class="ds">Pariser Düfte und Kerzen</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.fredericmalle.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Frédéric Malle</span><span class="ds">Editions de Parfums</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.initioparfums.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Initio</span><span class="ds">Molekulare Pariser Düfte</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.nishane.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Nishane</span><span class="ds">Istanbuler Nischen-Parfumerie</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+    </div>
+    <div class="foot reveal d2">
+      <span>Caesar Imperium &middot; Ultimate Edition</span>
+      <span class="pg">Seite 08 / 09</span>
+    </div>
+  </div>
+</section>
+<section id="sec09" data-idx="9" data-label="09" data-short="Fine Spirits">
+  <div class="ghost" aria-hidden="true">09</div>
+  <div class="inner">
+    <div class="shead reveal">
+      <div class="eyebrow">Sektion 09 &middot; 10 Häuser</div>
+      <h2 class="stitle">FINE SPIRITS &amp; CHAMPAGNE</h2>
+      <div class="srule"></div>
+    </div>
+    <div class="grid reveal d1">
+<a class="row" href="https://www.domperignon.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Dom Pérignon</span><span class="ds">Vintage-Champagner von Moët</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.krug.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Krug</span><span class="ds">Haus der Grande Cuvée</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.louis-roederer.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Louis Roederer Cristal</span><span class="ds">Prestige-Cuvée seit 1876</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.armanddebrignac.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Armand de Brignac</span><span class="ds">Ace of Spades Champagner</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.louisxiii-cognac.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Louis XIII</span><span class="ds">Grande-Champagne-Cognac von Rémy Martin</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.hennessy.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Hennessy</span><span class="ds">Cognac-Haus aus Cognac</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.themacallan.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">The Macallan</span><span class="ds">Single Malt aus Speyside</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.remymartin.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Rémy Martin</span><span class="ds">Fine Champagne Cognac</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.johnniewalker.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Johnnie Walker Blue</span><span class="ds">Luxus-Blended-Scotch</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+<a class="row" href="https://www.suntory.com" target="_blank" rel="noopener noreferrer"><span class="info"><span class="nm">Hibiki</span><span class="ds">Japanischer Harmony-Blend</span></span><span class="go">Ansehen<span class="ar">&rarr;</span></span></a>
+    </div>
+    <div class="foot reveal d2">
+      <span>Caesar Imperium &middot; Ultimate Edition</span>
+      <span class="pg">Seite 09 / 09</span>
+    </div>
+  </div>
+</section>
+</main>
+<div id="results" aria-hidden="true"><div class="rwrap" id="rwrap"></div></div>
+<script>
+(function(){
+  var root=document.documentElement;
+  var scroller=document.querySelector('.scroll');
+  var secs=Array.prototype.slice.call(document.querySelectorAll('section'));
+  var railLinks=Array.prototype.slice.call(document.querySelectorAll('.rail a'));
+  var cur=document.getElementById('cur');
+
+  // Reveal + Fortschritt
+  root.classList.add('anim');
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){
+      e.target.querySelectorAll('.reveal').forEach(function(r){r.classList.add('in');});
+    }});
+  },{root:scroller,threshold:0.18});
+  secs.forEach(function(s){io.observe(s);});
+  // Erste Sektion sofort sichtbar
+  (secs[0].querySelectorAll('.reveal')).forEach(function(r){r.classList.add('in');});
+
+  // Aktive Sektion bestimmen
+  var act=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){
+      var idx=parseInt(e.target.getAttribute('data-idx'),10);
+      var lab=e.target.getAttribute('data-label');
+      if(cur){ cur.textContent = idx===0 ? '01' : (lab||'01'); }
+      if(idx===0 && cur){ cur.textContent='01'; }
+      railLinks.forEach(function(a){
+        var on=a.getAttribute('data-go')===e.target.id;
+        a.classList.toggle('active',on);
+      });
+    }});
+  },{root:scroller,threshold:0.55});
+  secs.forEach(function(s){act.observe(s);});
+
+  // Sanftes Scrollen per Index, ohne Hash zu schreiben
+  function goTo(id){var el=document.getElementById(id);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});}}
+  Array.prototype.slice.call(document.querySelectorAll('[data-go]')).forEach(function(a){
+    a.addEventListener('click',function(ev){ev.preventDefault();goTo(a.getAttribute('data-go'));});
+  });
+
+  // ---- Bar bei Scroll ausblenden / einblenden ----
+  var bar=document.querySelector('.topbar');
+  var lastY=scroller.scrollTop, ticking=false;
+  scroller.addEventListener('scroll',function(){
+    if(ticking) return; ticking=true;
+    requestAnimationFrame(function(){
+      var y=scroller.scrollTop;
+      if(y<64){ bar.classList.remove('hide'); }
+      else if(y>lastY+5){ bar.classList.add('hide'); }
+      else if(y<lastY-5){ bar.classList.remove('hide'); }
+      lastY=y; ticking=false;
+    });
+  },{passive:true});
+
+  // ---- Suche ----
+  var q=document.getElementById('q');
+  var results=document.getElementById('results');
+  var rwrap=document.getElementById('rwrap');
+  var sf=document.getElementById('sf');
+  function h(s){return String(s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var index=[];
+  secs.forEach(function(s){
+    if(s.id==='cover') return;
+    var tag=s.getAttribute('data-short')||'';
+    Array.prototype.slice.call(s.querySelectorAll('.grid .row')).forEach(function(a){
+      index.push({tag:tag,
+        nm:a.querySelector('.nm').textContent,
+        ds:a.querySelector('.ds').textContent,
+        href:a.getAttribute('href')});
+    });
+  });
+  function render(term){
+    var t=term.toLowerCase();
+    var hits=index.filter(function(x){
+      return (x.nm+' '+x.ds+' '+x.tag).toLowerCase().indexOf(t)>-1;});
+    if(!hits.length){
+      rwrap.innerHTML='<div class="rempty">Keine Treffer f\u00fcr \u201e'+h(term)+'\u201c</div>';
+      return;
+    }
+    var rows=hits.map(function(x){
+      return '<a class="row" href="'+h(x.href)+'" target="_blank" rel="noopener noreferrer">'
+        +'<span class="info"><span class="rtag">'+h(x.tag)+'</span>'
+        +'<span class="nm">'+h(x.nm)+'</span>'
+        +'<span class="ds">'+h(x.ds)+'</span></span>'
+        +'<span class="go">Ansehen<span class="ar">&rarr;</span></span></a>';}).join('');
+    rwrap.innerHTML='<div class="rmeta"><span>\u201e'+h(term)+'\u201c</span><span><b>'+hits.length
+      +'</b> Treffer</span></div><div class="rgrid">'+rows+'</div>';
+  }
+  function update(){
+    var v=q.value.trim();
+    if(!v){results.classList.remove('on');results.setAttribute('aria-hidden','true');return;}
+    render(v);results.classList.add('on');results.setAttribute('aria-hidden','false');
+  }
+  if(q){
+    q.addEventListener('input',update);
+    q.addEventListener('keydown',function(e){
+      if(e.key==='Escape'){q.value='';update();q.blur();}});
+  }
+  if(sf){sf.addEventListener('submit',function(e){e.preventDefault();});}
+})();
+</script>
